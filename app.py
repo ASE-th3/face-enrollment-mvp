@@ -20,7 +20,8 @@ from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
 
 BASE_DIR = Path(__file__).resolve().parent
-DATA_DIR = BASE_DIR / "data"
+DEFAULT_DATA_DIR = "/tmp/face-enrollment-data" if os.environ.get("VERCEL") else str(BASE_DIR / "data")
+DATA_DIR = Path(os.environ.get("DATA_DIR", DEFAULT_DATA_DIR))
 CAPTURE_DIR = DATA_DIR / "captures"
 DB_PATH = DATA_DIR / "enrollments.sqlite3"
 STATIC_DIR = BASE_DIR / "static"
