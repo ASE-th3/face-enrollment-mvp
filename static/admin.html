@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>HR Face Enrollment</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+  <main class="admin-shell">
+    <section class="panel">
+      <div class="eyebrow">HR / SECURITY</div>
+      <h1>Face Enrollment Portal</h1>
+      <p class="muted">Create a short-lived biometric enrollment link for an employee.</p>
+      <label>Admin key<input id="adminKey" type="password" placeholder="X-Admin-Key" /></label>
+      <div class="grid2">
+        <label>Employee ID<input id="employeeId" placeholder="EMP-00123" /></label>
+        <label>Employee name<input id="employeeName" placeholder="Employee name" /></label>
+      </div>
+      <div class="grid2">
+        <label>Email (optional)<input id="email" type="email" placeholder="employee@company.com" /></label>
+        <label>Link validity (hours)<input id="hours" type="number" value="24" min="1" max="168" /></label>
+      </div>
+      <button id="createBtn" class="primary">Create enrollment link</button>
+      <div id="result" class="result hidden"></div>
+    </section>
+
+    <section class="panel">
+      <div class="row between">
+        <div>
+          <div class="eyebrow">ENROLLMENTS</div>
+          <h2>Recent sessions</h2>
+        </div>
+        <button id="refreshBtn" class="secondary">Refresh</button>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Employee</th><th>Status</th><th>Captures</th><th>Quality</th><th>Created</th><th></th></tr></thead>
+          <tbody id="rows"><tr><td colspan="6" class="muted">Enter the admin key and refresh.</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+<script>
+const $ = id => document.getElementById(id);
+const key = () => $('adminKey').value;
+$('adminKey').value = localStorage.getItem('faceEnrollAdminKey') || '';
+$('adminKey').addEventListener('change', () => localStorage.setItem('faceEnrollAdminKey', key()));
+
+async function api(url, opts={}) {
+  opts.headers = {...(opts.headers||{}), 'X-Admin-Key': key()};
+  const r = await fetch(url, opts);
+  const text = await r.text();
+  let data; try { data = JSON.parse(text); } catch { data = text; }
+  if (!r.ok) throw new Error(data.detail || text || r.statusText);
+  return data;
+}
+
+$('createBtn').onclick = async () => {
+  try {
+    const body = {
+      employee_id: $('employeeId').value.trim(),
+      employee_name: $('employeeName').value.trim(),
+      email: $('email').value.trim() || null,
+      expires_hours: Number($('hours').value || 24)
+    };
+    const data = await api('/api/admin/enrollments', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    $('result').classList.remove('hidden');
+    $('result').innerHTML = `<strong>Enrollment link created</strong><div class="urlbox"><input id="linkBox" value="${data.enrollment_url}" readonly><button id="copyBtn" class="secondary">Copy</button></div><small>Expires: ${new Date(data.expires_at).toLocaleString()}</small>`;
+    $('copyBtn').onclick = async () => { await navigator.clipboard.writeText($('linkBox').value); $('copyBtn').textContent='Copied'; };
+    loadRows();
+  } catch(e) { alert(e.message); }
+};
+
+async function loadRows() {
+  try {
+    const data = await api('/api/admin/enrollments');
+    $('rows').innerHTML = data.map(x => `<tr>
+      <td><strong>${escapeHtml(x.employee_name)}</strong><br><span class="muted">${escapeHtml(x.employee_id)}</span></td>
+      <td><span class="status ${x.status}">${x.status.replace('_',' ')}</span></td>
+      <td>${x.capture_count}</td>
+      <td>${x.final_quality == null ? '—' : Math.round(x.final_quality)+'/100'}</td>
+      <td>${new Date(x.created_at).toLocaleString()}</td>
+      <td>${x.status==='completed' ? `<button class="secondary" onclick="downloadExport('${x.id}')">Export</button>` : ''}</td>
+    </tr>`).join('') || '<tr><td colspan="6">No sessions yet.</td></tr>';
+  } catch(e) { $('rows').innerHTML=`<tr><td colspan="6" class="error">${escapeHtml(e.message)}</td></tr>`; }
+}
+function escapeHtml(s=''){ return s.replace(/[&<>'"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c])); }
+async function downloadExport(id) {
+  const r = await fetch(`/api/admin/enrollments/${id}/export`, {headers:{'X-Admin-Key':key()}});
+  if (!r.ok) return alert((await r.json()).detail || 'Export failed');
+  const blob = await r.blob();
+  const a = document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=`enrollment-${id}.zip`; a.click(); URL.revokeObjectURL(a.href);
+}
+window.downloadExport = downloadExport;
+$('refreshBtn').onclick = loadRows;
+if (key()) loadRows();
+</script>
+</body>
+</html>

@@ -1,0 +1,12 @@
+services:
+  face-enrollment:
+    build: .
+    restart: unless-stopped
+    environment:
+      ADMIN_KEY: ${ADMIN_KEY}
+      PUBLIC_BASE_URL: ${PUBLIC_BASE_URL}
+      ENCRYPTION_KEY: ${ENCRYPTION_KEY}
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "8000:8000"

@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Biometric Face Enrollment</title>
+  <link rel="stylesheet" href="/static/styles.css" />
+</head>
+<body>
+<main class="enroll-shell">
+  <section class="capture-card">
+    <div class="capture-header">
+      <div><div class="eyebrow">SECURE BIOMETRIC ENROLLMENT</div><h1 id="personName">Loading…</h1></div>
+      <div id="stepBadge" class="step-badge">0 / 9</div>
+    </div>
+
+    <div id="consentPanel" class="consent-panel">
+      <h2>Before camera access</h2>
+      <p>This process captures multiple facial images and associated quality/pose measurements for biometric enrollment. The images will be transmitted to and stored on your organization's server.</p>
+      <label class="check"><input id="consent" type="checkbox" /> <span>I understand and consent to this biometric enrollment.</span></label>
+      <button id="startBtn" class="primary">Start enrollment</button>
+    </div>
+
+    <div id="cameraPanel" class="hidden">
+      <div class="camera-wrap">
+        <video id="video" autoplay playsinline muted></video>
+        <canvas id="overlay"></canvas>
+        <div class="oval"></div>
+        <div id="instruction" class="instruction">Position your face inside the oval</div>
+      </div>
+      <div class="metrics">
+        <div><span>Face</span><strong id="mFace">—</strong></div>
+        <div><span>Lighting</span><strong id="mLight">—</strong></div>
+        <div><span>Sharpness</span><strong id="mSharp">—</strong></div>
+        <div><span>Position</span><strong id="mPosition">—</strong></div>
+        <div><span>Pose</span><strong id="mPose">—</strong></div>
+        <div><span>Quality</span><strong id="mQuality">—</strong></div>
+      </div>
+      <p id="hint" class="hint">The application keeps only accepted frames.</p>
+      <div class="progress"><div id="progressBar"></div></div>
+    </div>
+
+    <div id="completePanel" class="complete hidden">
+      <div class="checkmark">✓</div>
+      <h2>Enrollment complete</h2>
+      <p id="completeText">Your biometric enrollment package was securely submitted.</p>
+    </div>
+
+    <div id="errorBox" class="errorbox hidden"></div>
+  </section>
+</main>
+<canvas id="workCanvas" class="hidden"></canvas>
+<script type="module" src="/static/enroll.js"></script>
+</body>
+</html>
